@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Bank Matching - SDG 3 Hackathon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #d32f2f;
+            text-align: center;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #d32f2f;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+        .blood-item {
+            background: #ffebee;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #d32f2f;
+        }
+        .available { color: green; font-weight: bold; }
+        .matched { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🩸 Blood Bank Matching System</h1>
+    
+    <!-- Donor Registration -->
+    <div class="card">
+        <h2>📝 Register as Donor</h2>
+        <div class="form-group">
+            <label>Name:</label>
+            <input type="text" id="donorName" placeholder="Enter name">
+        </div>
+        <div class="form-group">
+            <label>Blood Type:</label>
+            <select id="donorBloodType">
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>City:</label>
+            <input type="text" id="donorCity" placeholder="Enter city">
+        </div>
+        <div class="form-group">
+            <label>Phone:</label>
+            <input type="tel" id="donorPhone" placeholder="Phone number">
+        </div>
+        <button onclick="registerDonor()">Register Donor</button>
+    </div>
+
+    <!-- Blood Request -->
+    <div class="card">
+        <h2>🏥 Request Blood</h2>
+        <div class="form-group">
+            <label>Hospital:</label>
+            <input type="text" id="hospitalName" placeholder="Hospital name">
+        </div>
+        <div class="form-group">
+            <label>Required Blood Type:</label>
+            <select id="requiredType">
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Units:</label>
+            <input type="number" id="unitsNeeded" value="1" min="1">
+        </div>
+        <button onclick="requestBlood()">Submit Request</button>
+    </div>
+
+    <!-- Display Inventory -->
+    <div class="card">
+        <h2>📋 Blood Inventory</h2>
+        <button onclick="showInventory()">Show Available Blood</button>
+        <div id="inventory"></div>
+    </div>
+</div>
+
+<script>
+    // Simple database
+    let bloodBank = [
+        { id: 1, type: 'O-', units: 3, city: 'New York', donor: 'John', phone: '111', status: 'Available' },
+        { id: 2, type: 'A+', units: 2, city: 'New York', donor: 'Jane', phone: '222', status: 'Available' },
+        { id: 3, type: 'B+', units: 1, city: 'LA', donor: 'Mike', phone: '333', status: 'Available' },
+        { id: 4, type: 'AB+', units: 2, city: 'Chicago', donor: 'Sarah', phone: '444', status: 'Available' },
+    ];
+
+    // Compatibility matrix
+    const canReceive = {
+        'A+': ['A+', 'A-', 'O+', 'O-'],
+        'A-': ['A-', 'O-'],
+        'B+': ['B+', 'B-', 'O+', 'O-'],
+        'B-': ['B-', 'O-'],
+        'O+': ['O+', 'O-'],
+        'O-': ['O-'],
+        'AB+': ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'],
+        'AB-': ['A-', 'B-', 'O-', 'AB-']
+    };
+
+    function registerDonor() {
+        let name = document.getElementById('donorName').value;
+        let type = document.getElementById('donorBloodType').value;
+        let city = document.getElementById('donorCity').value;
+        let phone = document.getElementById('donorPhone').value;
+
+        if (!name || !city || !phone) {
+            alert('Please fill all fields!');
+            return;
+        }
+
+        let newDonor = {
+            id: bloodBank.length + 1,
+            type: type,
+            units: 1,
+            city: city,
+            donor: name,
+            phone: phone,
+            status: 'Available'
+        };
+
+        bloodBank.push(newDonor);
+        alert('Thank you! You are registered as donor.');
+        showInventory();
+    }
+
+    function requestBlood() {
+        let hospital = document.getElementById('hospitalName').value;
+        let reqType = document.getElementById('requiredType').value;
+        let units = parseInt(document.getElementById('unitsNeeded').value);
+
+        if (!hospital) {
+            alert('Enter hospital name!');
+            return;
+        }
+
+        // Find matching blood
+        let matches = bloodBank.filter(b => 
+            b.status === 'Available' && 
+            canReceive[reqType].includes(b.type)
+        );
+
+        if (matches.length === 0) {
+            alert('No matching blood found!');
+            return;
+        }
+
+        // Simple allocation
+        let allocated = 0;
+        for (let blood of matches) {
+            if (allocated < units) {
+                blood.status = 'Matched';
+                allocated += blood.units;
+            }
+        }
+
+        alert('MATCH FOUND! Donors will be contacted.');
+        showInventory();
+    }
+
+    function showInventory() {
+        let div = document.getElementById('inventory');
+        div.innerHTML = '';
+
+        bloodBank.forEach(b => {
+            let span = '<span class="available">Available</span>';
+            if (b.status === 'Matched') span = '<span class="matched">Matched</span>';
+
+            div.innerHTML += `
+                <div class="blood-item">
+                    <b>${b.type}</b> - ${b.units} unit(s) - ${b.city} - ${span}<br>
+                    Donor: ${b.donor} | Phone: ${b.phone}
+                </div>
+            `;
+        });
+    }
+
+    showInventory();
+</script>
+
+</body>
+</html>
